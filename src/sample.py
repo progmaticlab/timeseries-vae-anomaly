@@ -5,6 +5,8 @@ from matplotlib import pyplot as plt
 
 from anomaly import AnomalyDetection
 
+from datetime import datetime
+
 k1 = '#DC7633'
 k2 = '#E74C3C'
 
@@ -28,4 +30,4 @@ def main(filename, experiment='exp1', columns=['pgz']):
         plt.savefig(filename)
 
 if __name__ == '__main__':
-    main('../data/stocks.csv', 'exp1', ['pgz', 'eia'])
+    main('../data/stocks.csv', 'exp1', ['pgz', 'eia', 'lscc'])

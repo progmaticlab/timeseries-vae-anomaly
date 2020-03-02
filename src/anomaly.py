@@ -14,8 +14,11 @@ class AnomalyDetection(object):
         self.kernel_n = base_sample_size
         self.msx = msx
 
-    def find_anomalies(self, series, bins=[2, 3, 4], verbose=0):
+    def find_anomalies(self, series, bins=[2, 3, 4], verbose=0): #2 - 95%, 3 -99.7%
         X = self.__Z_scale(series)
+
+        if np.count_nonzero(X) == 0:
+            return {}, {}
 
         min_norm = 10 ** 6
         min_idx = 0
