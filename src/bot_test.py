@@ -7,11 +7,12 @@ import traceback
 
 import slack
 
+SLACK_CHANNEL = os.environ.get('SLACK_CHANNEL')
 
 def test_block_with_text_format(client):
     client.api_call(
         "chat.postMessage", json={
-            'channel': 'GUC3RNY2F',
+            'channel': SLACK_CHANNEL,
             'blocks': [
                 {
                     "type": "section",
@@ -32,7 +33,7 @@ def test_block_with_text_format(client):
 def test_block_with_buttons(client):
     client.api_call(
         "chat.postMessage", json={
-            'channel': 'GUC3RNY2F',
+            'channel': SLACK_CHANNEL,
             'blocks': [
                 {
                     "type": "section",

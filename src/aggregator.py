@@ -1,3 +1,4 @@
+import os
 import json
 import pandas as pd
 import numpy as np
@@ -11,7 +12,7 @@ import random
 
 from datetime import datetime, timedelta
 
-samples_path = '/Users/dmitry/pros/ngcops-pro/timeseries-vae-anomaly/samples/'
+SAMPLES_FOLDER = os.environ.get('SAMPLES_FOLDER')
 
 application_diagram = {
     'productpage': set(['reviews', 'details']),
@@ -150,12 +151,12 @@ class VisualizeReports(object):
         plt.xticks(ticks=xtick_location, labels=xtick_labels, rotation=60, fontsize=12, horizontalalignment='center', alpha=.7)
         plt.yticks(fontsize=12, alpha=.7)
 
-        plt.savefig(samples_path + out_f)
+        plt.savefig(out_f)
 
 
     def __build_list_timestamps(self, indices):
         result = []
-        now = datetime.now()
+        now = datetime.now() - (20 * delta)
         last = indices[-1]
         for i in range(len(indices)):
             tick = now - delta * (last - indices[i])
@@ -209,7 +210,7 @@ if __name__ == '__main__':
     metrics_df = pd.read_csv('/Users/dmitry/pros/ngcops-pro/timeseries-vae-anomaly/data/metrics_0_filter.csv')
     for key, item in incidents.items():
         visualisation = VisualizeReports(metrics_df, an_data, item)
-        visualisation.visualize_with_siblings('{}_vis.png'.format(key))
+        visualisation.visualize_with_siblings('{}/{}_vis.png'.format(SAMPLES_FOLDER, key))
 
     print('\n')
     print(relevance)

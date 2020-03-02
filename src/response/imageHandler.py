@@ -1,6 +1,8 @@
+import os
+
 from response.requestHandler import RequestHandler
 
-SAMPLES_FOLDER = '/Users/dmitry/pros/ngcops-pro/timeseries-vae-anomaly/samples'
+SAMPLES_FOLDER = os.environ.get('SAMPLES_FOLDER')
 
 class ImageHandler(RequestHandler):
     def __init__(self):

@@ -3,38 +3,86 @@ import os
 from http.server import HTTPServer
 from http.server import BaseHTTPRequestHandler
 
+import urllib
+
+import json
+
 from response.staticHandler import StaticHandler
 from response.imageHandler import ImageHandler
 from response.badRequestHandler import BadRequestHandler
+from response.okHandler import OkHandler
+from response.slackHandler import SlackHandler
 
-HOST_NAME = 'localhost'
-PORT_NUMBER = 9898
+from experiment import ExperimentRunner
 
+HOST_NAME = ''
+# PORT_NUMBER = 9898
+PORT_NUMBER = 8080
+
+runner = ExperimentRunner()
 
 class Server(BaseHTTPRequestHandler):
+
+    experiment = ExperimentRunner()
 
     def do_HEAD(self):
         return
 
     def do_POST(self):
-        return
+        # print('{} POST received '.format(self.path))
+        handler = None
+        print('{} slack command received'.format(self.path))
+        if self.path.startswith('/slack/interactive'):
+            print('{} slack command received'.format(self.path))
+            content_length = int(self.headers['Content-Length'])
+            post_body = self.rfile.read(content_length).decode("utf-8")
+            payload = post_body.replace('payload=', '')
+            payload_unqoute = urllib.parse.unquote(payload)
+            test_data = json.loads(payload_unqoute)
+            print(test_data)
+            try:
+                action_value = test_data['actions'][0]['value']
+                print(action_value)
+                if action_value == 'suggestion_1_on':
+                    self.experiment.run_runbook()
+                elif action_value == 'suggestion_1_explain':
+                    self.experiment.explain_runbook()
+            except Exception as e:
+                print(e)
+        else:
+            handler = BadRequestHandler()
+
+        if handler:
+            self.respond({
+                'handler': handler
+            })
+
 
     def do_GET(self):
+        # print('{} GET received '.format(self.path))
         split_path = os.path.splitext(self.path)
         request_extension = split_path[1]
 
+        handler = None
         if request_extension == ".png" and self.path.startswith('/anomaly/image'):
             handler = ImageHandler()
             handler.find({'path': self.path})
         elif request_extension is ".py":
             handler = BadRequestHandler()
+        elif self.path.startswith('/analysis/run'):
+            self.experiment.run_experiment()
+            handler = OkHandler()
+        elif self.path.startswith('/slack/command'):
+            print('{} slack command received'.format(self.path))
+            handler = SlackHandler(self.experiment)
         else:
             handler = StaticHandler()
             handler.find(self.path)
 
-        self.respond({
-            'handler': handler
-        })
+        if handler:
+            self.respond({
+                'handler': handler
+            })
 
     def handle_http(self, handler):
         status_code = handler.getStatus()
