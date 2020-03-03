@@ -13,9 +13,16 @@ import slack
 from aggregator import Aggregator
 from aggregator import VisualizeReports
 
+
+SLACK_CALLBACK_SCHEMA = os.environ.get('SLACK_CALLBACK_SCHEMA', 'http')
+SLACK_CALLBACK_HOST = os.environ.get('SLACK_CALLBACK_HOST')
+PORT_NUMBER = os.environ.get('PORT_NUMBER', 8080)
+
+
 DATA_FOLDER = os.environ.get('DATA_FOLDER')
 SAMPLES_FOLDER = os.environ.get('SAMPLES_FOLDER')
 SLACK_CHANNEL = os.environ.get('SLACK_CHANNEL')
+
 
 class ExperimentRunner(object):
 
@@ -87,6 +94,7 @@ class ExperimentRunner(object):
 
 
     def __run_incident_report_buttons(self, incident_key, filename):
+        base_url = "{}://{}:{}/slack".format(SLACK_CALLBACK_SCHEMA, SLACK_CALLBACK_HOST, PORT_NUMBER)
         self.slack_client.api_call(
             "chat.postMessage", json={
                 'channel': SLACK_CHANNEL,
@@ -122,25 +130,25 @@ class ExperimentRunner(object):
                             },
                             "style": "primary",
                             "value": "suggestion_1_on",
-                            # "url": "http://13.48.135.132/slack/command/run"
+                            "url": "{}/command/run".format(base_url)
                         }, {
                             "type": "button",
                             "text": {
                                 "type": "plain_text",
                                 "text": "Read Suggested RunBook"
                             },
-                            # "style": "primary",
+                            "style": "primary",
                             "value": "suggestion_1_explain",
-                            # "url": "http://13.48.135.132/slack/command/explain"
+                            "url": "{}/command/explain".format(base_url)
                         }, {
                             "type": "button",
                             "text": {
                                 "type": "plain_text",
                                 "text": "More Context"
                             },
-                            # "style": "primary",
+                            "style": "primary",
                             "value": "more_context",
-                            # "url": "http://13.48.135.132/slack/command/context"
+                            "url": "{}/command/context".format(base_url)
                         }, {
                             "type": "button",
                             "text": {
@@ -149,16 +157,16 @@ class ExperimentRunner(object):
                             },
                             "style": "danger",
                             "value": "operator_flow",
-                            # "url": "http://13.48.135.132/slack/command/operator"
+                            "url": "{}/command/operator".format(base_url)
                         }, {
                             "type": "button",
                             "text": {
                                 "type": "plain_text",
                                 "text": "This is not an anomaly"
                             },
-                            # "style": "primary",
+                            "style": "primary",
                             "value": "negative_case",
-                            # "url": "http://13.48.135.132/slack/command/negative"
+                            "url": "{}/command/negative".format(base_url)
                         }]
                     }
                 ]

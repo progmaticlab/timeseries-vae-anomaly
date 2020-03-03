@@ -15,9 +15,8 @@ from response.slackHandler import SlackHandler
 
 from experiment import ExperimentRunner
 
-HOST_NAME = ''
-# PORT_NUMBER = 9898
-PORT_NUMBER = 8080
+HOST_NAME = os.environ.get('HOST_NAME', '')
+PORT_NUMBER = os.environ.get('PORT_NUMBER', 8080)
 
 runner = ExperimentRunner()
 
