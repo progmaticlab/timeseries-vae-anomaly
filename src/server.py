@@ -1,10 +1,12 @@
 import time
 import os
+import sys
+import requests
+
 from http.server import HTTPServer
 from http.server import BaseHTTPRequestHandler
 
 import urllib
-
 import json
 
 from response.staticHandler import StaticHandler
@@ -17,8 +19,15 @@ from experiment import ExperimentRunner
 
 HOST_NAME = os.environ.get('HOST_NAME', '')
 PORT_NUMBER = int(os.environ.get('PORT_NUMBER', 8080))
+SLACK_CHANNEL = os.environ.get('SLACK_CHANNEL')
 
 runner = ExperimentRunner()
+
+
+def post_request(url, post_body):
+    print("proxy post request to: %s" % url)
+    requests.post(url, post_body)
+
 
 class Server(BaseHTTPRequestHandler):
 
@@ -28,24 +37,39 @@ class Server(BaseHTTPRequestHandler):
         return
 
     def do_POST(self):
-        # print('{} POST received '.format(self.path))
+        print('{} POST received '.format(self.path))
         handler = None
         print('{} slack command received'.format(self.path))
-        if self.path.startswith('/slack/interactive'):
-            print('{} slack command received'.format(self.path))
-            content_length = int(self.headers['Content-Length'])
-            post_body = self.rfile.read(content_length).decode("utf-8")
-            payload = post_body.replace('payload=', '')
-            payload_unqoute = urllib.parse.unquote(payload)
-            test_data = json.loads(payload_unqoute)
-            print(test_data)
+        if self.path.startswith('/slack/'):
             try:
+                content_length = int(self.headers['Content-Length'])
+                post_body = self.rfile.read(content_length).decode("utf-8")
+                payload = post_body.replace('payload=', '')
+                payload_unqoute = urllib.parse.unquote(payload)
+                test_data = json.loads(payload_unqoute)
+                print("payload: %" % test_data)
                 action_value = test_data['actions'][0]['value']
-                print(action_value)
-                if action_value == 'suggestion_1_on':
-                    self.experiment.run_runbook()
-                elif action_value == 'suggestion_1_explain':
-                    self.experiment.explain_runbook()
+                print("action: " % action_value)
+                if self.path.startswith('/slack/proxy'):
+                    blocks = test_data['message']['blocks']
+                    url = None
+                    for i in test_data['message']['blocks']:
+                        if i['type'] != 'actions':
+                            continue
+                        for e in i['elements']:
+                            if e['value'] != action_value:
+                                continue
+                            url = e['url']
+                            break
+                    if url:
+                        post_request(url, post_body)
+                elif self.path.startswith('/slack/interactive'):
+                        if action_value == 'suggestion_1_on':
+                            self.experiment.run_runbook()
+                        elif action_value == 'suggestion_1_explain':
+                            self.experiment.explain_runbook()
+                else:
+                    handler = BadRequestHandler()
             except Exception as e:
                 print(e)
         else:
@@ -58,7 +82,7 @@ class Server(BaseHTTPRequestHandler):
 
 
     def do_GET(self):
-        # print('{} GET received '.format(self.path))
+        print('{} GET received '.format(self.path))
         split_path = os.path.splitext(self.path)
         request_extension = split_path[1]
 
@@ -104,8 +128,11 @@ class Server(BaseHTTPRequestHandler):
 
 
 if __name__ == '__main__':
+    if not SLACK_CHANNEL:
+        print(time.asctime(), 'ERROR: SLACK_CHANNEL env variable is not provided')
+        sys.exit(-1)
     httpd = HTTPServer((HOST_NAME, PORT_NUMBER), Server)
-    print(time.asctime(), 'Server UP - %s:%s' % (HOST_NAME, PORT_NUMBER))
+    print(time.asctime(), 'Server UP for channel %s - %s:%s' % (SLACK_CHANNEL, HOST_NAME, PORT_NUMBER))
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

@@ -15,7 +15,7 @@ from aggregator import VisualizeReports
 
 
 SLACK_CALLBACK_SCHEMA = os.environ.get('SLACK_CALLBACK_SCHEMA', 'http')
-SLACK_CALLBACK_HOST = os.environ.get('SLACK_CALLBACK_HOST')
+SLACK_CALLBACK_HOST = os.environ.get('SLACK_CALLBACK_HOST', 'localhost')
 PORT_NUMBER = os.environ.get('PORT_NUMBER', 8080)
 
 
@@ -94,7 +94,7 @@ class ExperimentRunner(object):
 
 
     def __run_incident_report_buttons(self, incident_key, filename):
-        base_url = "{}://{}:{}/slack".format(SLACK_CALLBACK_SCHEMA, SLACK_CALLBACK_HOST, PORT_NUMBER)
+        base_url = "{}://{}:{}/slack/interactive".format(SLACK_CALLBACK_SCHEMA, SLACK_CALLBACK_HOST, PORT_NUMBER)
         self.slack_client.api_call(
             "chat.postMessage", json={
                 'channel': SLACK_CHANNEL,
@@ -122,6 +122,7 @@ class ExperimentRunner(object):
                     }, {
                         "type": "actions",
                         "block_id": "actions1",
+
                         "elements": [{
                             "type": "button",
                             "text": {

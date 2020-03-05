@@ -6,6 +6,7 @@ class RequestHandler():
     def __init__(self):
         self.contentType = ""
         self.contents = MockFile()
+        self.status = ""
 
     def getContents(self):
         return self.contents.read()
