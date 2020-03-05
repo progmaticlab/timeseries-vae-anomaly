@@ -127,10 +127,10 @@ class VisualizeReports(object):
         self.anomaly_data = anomaly_data
         self.incidents_report = incident_report
         self.siblings_map = {
-            'productpage': set(['productpage-v1-6cc647db65-f772m']),
-            'ratings': set(['ratings-v1-794f554859-zzvp5']),
-            'details': set(['details-v1-d885f8487-w5zqv']),
-            'reviews': set(['reviews-v1-5df856fc47-5mgfz', 'reviews-v2-7678cf597-xhjc5', 'reviews-v3-546ff94d8c-v7rhg'])
+            'product': set(['productpage-v1']),
+            'ratings': set(['ratings-v1']),
+            'details': set(['details-v1']),
+            'reviews': set(['reviews-v1', 'reviews-v2', 'reviews-v3'])
         }
 
 
@@ -170,9 +170,8 @@ class VisualizeReports(object):
         prop_cycle = plt.rcParams['axes.prop_cycle']
         colors = prop_cycle.by_key()['color']
 
-        parts = metric_code.split(':')
-        app_code = parts[0]
-        app_tpe = app_code.split('-')[0]
+        parts = metric_code.split('|')
+        app_tpe = parts[0]
         metric_id = parts[1]
 
         ax.title.set_text(metric_id)
@@ -182,7 +181,7 @@ class VisualizeReports(object):
 
         i = 0
         for pod in self.siblings_map.get(app_tpe):
-            m_code = '{}:{}'.format(pod, metric_id)
+            m_code = '{}|{}'.format(pod, metric_id)
             ts = self.metric_values[m_code]
             ax.plot(index, ts, color=colors[i], label=pod)
             i += 1
