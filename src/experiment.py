@@ -176,5 +176,18 @@ class ExperimentRunner(object):
 
 
 if __name__ == '__main__':
-    exp = ExperimentRunner()
-    exp.run_experiment()
+    # exp = ExperimentRunner()
+    # exp.run_experiment()
+        agg = Aggregator(255, 10)
+        with open('anomaly.json', 'r') as f:
+            an_data = json.load(f)
+        incidents, relevance = agg.build_incidents_report(an_data)
+
+        metrics_df = pd.read_csv('metrics_0_filter.csv')
+        for key, item in incidents.items():
+            image_file = '{}_viz.png'.format(key)
+            visualisation = VisualizeReports(metrics_df, an_data, item)
+            visualisation.visualize_with_siblings('{}'.format(image_file))
+
+            self.__upload_file('{}'.format(image_file), image_file)
+            self.__run_incident_report_buttons(key, image_file)

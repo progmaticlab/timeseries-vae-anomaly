@@ -127,10 +127,15 @@ class VisualizeReports(object):
         self.anomaly_data = anomaly_data
         self.incidents_report = incident_report
         self.siblings_map = {
-            'product': set(['productpage-v1']),
-            'ratings': set(['ratings-v1']),
-            'details': set(['details-v1']),
-            'reviews': set(['reviews-v1', 'reviews-v2', 'reviews-v3'])
+            # TODO: do something with names    
+            'product': set(['product']),
+            'ratings': set(['ratings']),
+            'details': set(['details']),
+            'reviews': set(['reviews', 'reviews', 'reviews'])
+            # 'product': set(['productpage-v1']),
+            # 'ratings': set(['ratings-v1']),
+            # 'details': set(['details-v1']),
+            # 'reviews': set(['reviews-v1', 'reviews-v2', 'reviews-v3'])
         }
 
 
@@ -170,7 +175,8 @@ class VisualizeReports(object):
         prop_cycle = plt.rcParams['axes.prop_cycle']
         colors = prop_cycle.by_key()['color']
 
-        parts = metric_code.split('|')
+        # TODO: something with parsing names..
+        parts = metric_code.split('|', 1)
         app_tpe = parts[0]
         metric_id = parts[1]
 
