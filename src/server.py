@@ -41,37 +41,34 @@ class Server(BaseHTTPRequestHandler):
         handler = None
         print('{} slack command received'.format(self.path))
         if self.path.startswith('/slack/'):
-            try:
-                content_length = int(self.headers['Content-Length'])
-                post_body = self.rfile.read(content_length).decode("utf-8")
-                payload = post_body.replace('payload=', '')
-                payload_unqoute = urllib.parse.unquote(payload)
-                test_data = json.loads(payload_unqoute)
-                print("payload: %" % test_data)
-                action_value = test_data['actions'][0]['value']
-                print("action: " % action_value)
-                if self.path.startswith('/slack/proxy'):
-                    blocks = test_data['message']['blocks']
-                    url = None
-                    for i in test_data['message']['blocks']:
-                        if i['type'] != 'actions':
+            content_length = int(self.headers['Content-Length'])
+            post_body = self.rfile.read(content_length).decode("utf-8")
+            payload = post_body.replace('payload=', '')
+            payload_unqoute = urllib.parse.unquote(payload)
+            test_data = json.loads(payload_unqoute)
+            print("payload: ", test_data)
+            action_value = test_data['actions'][0]['value']
+            print("action: ", action_value)
+            if self.path.startswith('/slack/proxy'):
+                blocks = test_data['message']['blocks']
+                url = None
+                for i in test_data['message']['blocks']:
+                    if i['type'] != 'actions':
+                        continue
+                    for e in i['elements']:
+                        if e['value'] != action_value:
                             continue
-                        for e in i['elements']:
-                            if e['value'] != action_value:
-                                continue
-                            url = e['url']
-                            break
-                    if url:
-                        post_request(url, post_body)
-                elif self.path.startswith('/slack/interactive'):
-                        if action_value == 'suggestion_1_on':
-                            self.experiment.run_runbook()
-                        elif action_value == 'suggestion_1_explain':
-                            self.experiment.explain_runbook()
-                else:
-                    handler = BadRequestHandler()
-            except Exception as e:
-                print(e)
+                        url = e['url']
+                        break
+                if url:
+                    post_request(url, post_body)
+            elif self.path.startswith('/slack/interactive'):
+                    if action_value == 'suggestion_1_on':
+                        self.experiment.run_runbook()
+                    elif action_value == 'suggestion_1_explain':
+                        self.experiment.explain_runbook()
+            else:
+                handler = BadRequestHandler()
         else:
             handler = BadRequestHandler()
 

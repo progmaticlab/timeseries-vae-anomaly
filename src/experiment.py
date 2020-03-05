@@ -94,7 +94,7 @@ class ExperimentRunner(object):
 
 
     def __run_incident_report_buttons(self, incident_key, filename):
-        base_url = "{}://{}:{}/slack/interactive".format(SLACK_CALLBACK_SCHEMA, SLACK_CALLBACK_HOST, PORT_NUMBER)
+        # base_url = "{}://{}:{}/slack/interactive".format(SLACK_CALLBACK_SCHEMA, SLACK_CALLBACK_HOST, PORT_NUMBER)
         self.slack_client.api_call(
             "chat.postMessage", json={
                 'channel': SLACK_CHANNEL,
@@ -131,7 +131,7 @@ class ExperimentRunner(object):
                             },
                             "style": "primary",
                             "value": "suggestion_1_on",
-                            "url": "{}/command/run".format(base_url)
+                            # "url": "{}/command/run".format(base_url)
                         }, {
                             "type": "button",
                             "text": {
@@ -140,7 +140,7 @@ class ExperimentRunner(object):
                             },
                             "style": "primary",
                             "value": "suggestion_1_explain",
-                            "url": "{}/command/explain".format(base_url)
+                            # "url": "{}/command/explain".format(base_url)
                         }, {
                             "type": "button",
                             "text": {
@@ -149,7 +149,7 @@ class ExperimentRunner(object):
                             },
                             "style": "primary",
                             "value": "more_context",
-                            "url": "{}/command/context".format(base_url)
+                            # "url": "{}/command/context".format(base_url)
                         }, {
                             "type": "button",
                             "text": {
@@ -158,7 +158,7 @@ class ExperimentRunner(object):
                             },
                             "style": "danger",
                             "value": "operator_flow",
-                            "url": "{}/command/operator".format(base_url)
+                            # "url": "{}/command/operator".format(base_url)
                         }, {
                             "type": "button",
                             "text": {
@@ -167,7 +167,7 @@ class ExperimentRunner(object):
                             },
                             "style": "primary",
                             "value": "negative_case",
-                            "url": "{}/command/negative".format(base_url)
+                            # "url": "{}/command/negative".format(base_url)
                         }]
                     }
                 ]
