@@ -188,6 +188,3 @@ if __name__ == '__main__':
             image_file = '{}_viz.png'.format(key)
             visualisation = VisualizeReports(metrics_df, an_data, item)
             visualisation.visualize_with_siblings('{}'.format(image_file))
-
-            self.__upload_file('{}'.format(image_file), image_file)
-            self.__run_incident_report_buttons(key, image_file)
