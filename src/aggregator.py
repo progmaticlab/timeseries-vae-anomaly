@@ -124,7 +124,8 @@ class Aggregator(object):
                         incident_obj = {
                             'id': inc_uuid,
                             'range': incident_range,
-                            'metrics': [report_item[0]]
+                            'metrics': [report_item[0]],
+                            'pod': self.anomaly_data[report_item[0]].get('pod')
                         }
                         incidents_report[inc_uuid] = incident_obj
                         added = True

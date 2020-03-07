@@ -40,9 +40,8 @@ class ExperimentRunner(object):
                 image_file = '{}_viz.png'.format(key)
                 visualisation = VisualizeReports(metrics_df, an_data, item)
                 visualisation.visualize_with_siblings('{}/{}'.format(SAMPLES_FOLDER, image_file))
-
                 self.__upload_file('{}/{}'.format(SAMPLES_FOLDER, image_file), image_file)
-                self.__run_incident_report_buttons(key, image_file)
+                self.__run_incident_report_buttons(key, item['pod'], image_file)
 
     def run_runbook(self):
         self.slack_client.api_call(
@@ -93,7 +92,7 @@ class ExperimentRunner(object):
         self.slack_client.files_upload(channels=SLACK_CHANNEL, file=file_path, title=filename)
 
 
-    def __run_incident_report_buttons(self, incident_key, filename):
+    def __run_incident_report_buttons(self, incident_key, pod, filename):
         # base_url = "{}://{}:{}/slack/interactive".format(SLACK_CALLBACK_SCHEMA, SLACK_CALLBACK_HOST, PORT_NUMBER)
         self.slack_client.api_call(
             "chat.postMessage", json={
