@@ -77,9 +77,9 @@ class Server(BaseHTTPRequestHandler):
         p = None
         try:
             p = self.interactive_responses.pop(0)
+            print("__pop_payload: %s" % p.action)
         except:
-            pass
-        print("__pop_payload: %s" % p.action)
+            print("__pop_payload: no items")
         return p
 
     def do_HEAD(self):
