@@ -1,12 +1,10 @@
-class MockFile():
-    def read(self):
-        return False
+import io
 
 class RequestHandler():
     def __init__(self):
-        self.contentType = ""
-        self.contents = MockFile()
-        self.status = ""
+        self.contentType = 'text/plain'
+        self.contents = io.StringIO('')
+        self.status = 404
 
     def getContents(self):
         return self.contents.read()

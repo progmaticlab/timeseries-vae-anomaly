@@ -2,17 +2,15 @@ from response.requestHandler import RequestHandler
 
 class SlackHandler(RequestHandler):
     def __init__(self, exp):
-        super().__init__()
-        self.contentType = 'text/plain'
+        super(SlackHandler, self).__init__()
         self.exp = exp
 
     def execute(self, path):
         command = path.replace('/slack/command/', '')
         self.setStatus(200)
-        if command == 'run':
+        if command == 'suggestion_1_on':
             self.exp.run_runbook()
-        elif command == 'explain':
+        elif command == 'explain_runbook':
             self.exp.explain_runbook()
         else:
             self.setStatus(404)
-

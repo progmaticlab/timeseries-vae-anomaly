@@ -145,6 +145,7 @@ class Server(BaseHTTPRequestHandler):
         elif self.path.startswith('/slack/command'):
             print('{} slack command received'.format(self.path))
             handler = SlackHandler(self.experiment)
+            handler.execute(self.path)
         else:
             handler = StaticHandler()
             handler.find(self.path)
@@ -156,9 +157,8 @@ class Server(BaseHTTPRequestHandler):
 
     def handle_http(self, handler):
         status_code = handler.getStatus()
-
         self.send_response(status_code)
-
+        
         if status_code is 200:
             content = handler.getContents()
             self.send_header('Content-type', handler.getContentType())
@@ -166,7 +166,6 @@ class Server(BaseHTTPRequestHandler):
             content = "404 Not Found"
 
         self.end_headers()
-
         return bytes(content, 'UTF-8') if handler.getContentType() != 'image/png' else bytes(content)
 
     def respond(self, opts):
