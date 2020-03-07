@@ -50,18 +50,34 @@ def check_auth(payload):
     return True
 
 
-class UserResponse(object):
-    def __init__(self, payload):
-        self.payload = payload
+class Payload(object):
+    def __init__(self, action, data):
+        self._action = action
+        self._data = data
+    
+    @property
+    def action(self):
+        return self._action
 
 
 class Server(BaseHTTPRequestHandler):
 
     experiment = ExperimentRunner()
     interactive_responses = list()
+    max_payloads = 100
 
-    def __register_payload(self, payload):
-        pass
+    def __register_payload(self, action_value, payload):
+        p = Payload(action_value, payload)
+        self.interactive_responses.append(p)
+        while len(self.interactive_responses.append) > self.max_payloads:
+            self.interactive_responses.pop(0)
+
+    def __pop_payload(self):
+        try:
+            return self.self.interactive_responses.pop(0)
+        except:
+            pass
+        return None
 
     def do_HEAD(self):
         return
@@ -81,19 +97,9 @@ class Server(BaseHTTPRequestHandler):
                 action_value = test_data['actions'][0]['value']
                 print("action: ", action_value)
                 if self.path.startswith('/slack/proxy'):
-                    blocks = test_data['message']['blocks']
-                    url = None
-                    for i in test_data['message']['blocks']:
-                        if i['type'] != 'actions':
-                            continue
-                        for e in i['elements']:
-                            if e['value'] != action_value:
-                                continue
-                            button, cmd, param, *_  = e['value'].split(':', 2) + [None, None]
-                            if cmd == 'url':
-                                url = param
-                            break
-                    self.__register_payload(payload_unqoute)
+                    self.__register_payload(action_value, test_data)
+                    button, cmd, param, *_  = action_value.split(':', 2) + [None, None]
+                    url = param if cmd == 'url' else None
                     if url:
                         post_request(url, post_body)
                     
@@ -130,6 +136,10 @@ class Server(BaseHTTPRequestHandler):
         elif self.path.startswith('/analysis/run'):
             self.experiment.run_experiment()
             handler = OkHandler()
+        elif self.path.startswith('/analysis/response'):
+            payload = self.__pop_payload()
+            action = payload.action if payload else ''
+            handler = OkHandler(content_type='text/plain', data=action)
         elif self.path.startswith('/slack/command'):
             print('{} slack command received'.format(self.path))
             handler = SlackHandler(self.experiment)

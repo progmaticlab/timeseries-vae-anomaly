@@ -3,9 +3,8 @@ import io
 from response.requestHandler import RequestHandler
 
 class OkHandler(RequestHandler):
-    def __init__(self):
+    def __init__(self, content_type='text/plain', data="Ok"):
         super().__init__()
-        self.contentType = 'text/plain'
-        file = io.StringIO("Ok") # takes string as arg
-        self.contents = file
+        self.contentType = content_type
+        self.contents = io.StringIO(data)
         self.setStatus(200)

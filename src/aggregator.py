@@ -158,7 +158,7 @@ class VisualizeReports(object):
             if sn not in self.siblings_map:
                 self.siblings_map[sn] = set()
             self.siblings_map[sn].add(ad['pod'])
-        print("VisualizeReports: incidents_report=%s" % (len(self.incidents_report), self.incidents_report))
+        print("VisualizeReports: incidents_report=%s" % (self.incidents_report))
         print("VisualizeReports: siblings_map=%s" % (self.siblings_map))
 
     def visualize_with_siblings(self, out_f):
