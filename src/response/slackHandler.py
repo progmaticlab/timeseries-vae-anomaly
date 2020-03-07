@@ -4,14 +4,15 @@ class SlackHandler(RequestHandler):
     def __init__(self, exp):
         super().__init__()
         self.contentType = 'text/plain'
+        self.exp = exp
 
     def execute(self, path):
         command = path.replace('/slack/command/', '')
         self.setStatus(200)
         if command == 'run':
-            exp.run_runbook()
+            self.exp.run_runbook()
         elif command == 'explain':
-            exp.explain_runbook()
+            self.exp.explain_runbook()
         else:
             self.setStatus(404)
 

@@ -12,7 +12,9 @@ import random
 
 from datetime import datetime, timedelta
 
-SAMPLES_FOLDER = os.environ.get('SAMPLES_FOLDER')
+
+DATA_FOLDER = os.environ.get('DATA_FOLDER', '.')
+SAMPLES_FOLDER = os.environ.get('SAMPLES_FOLDER', '.')
 
 application_diagram = {
     'productpage': set(['reviews', 'details']),
@@ -25,18 +27,34 @@ k2 = '#E74C3C'
 
 delta = timedelta(seconds=5)
 
+
+# returns max of time services length
+def get_period_lenght(anomaly_data):
+    first = list(anomaly_data.keys())[0]
+    ts = list(anomaly_data[first]['ts'])
+    pl = len(ts)
+    for k, v in anomaly_data.items():
+        npl = len(v['ts'])
+        if npl > pl:
+            pl = npl
+    return pl
+
+
 class Aggregator(object):
 
     def __init__(self,
-                 period_length,
-                 causal_sensitivity=3):
-        self.period_length = period_length
-        self.causal_sensitivity = causal_sensitivity
+                 anomaly_data,
+                 period_length=None,
+                 causal_sensitivity=None):
+        self.anomaly_data = anomaly_data
+        self.period_length = period_length if period_length is not None else get_period_lenght(anomaly_data)
+        self.causal_sensitivity = causal_sensitivity if causal_sensitivity is not None else self.period_length * 10 / 100
         self.relevance_decay = 1
+        print("Aggregator: period_length=%s, causal_sensitivity=%s" % (self.period_length, self.causal_sensitivity))
 
     def __filter_metrics(self, m):
-        if '_P' in m:
-            return True if '_P95' in m else False
+        if '|P' in m:
+            return True if '|P99' in m else False
         return True
 
     def __relevance_function(self, anomaly_obj):
@@ -48,53 +66,55 @@ class Aggregator(object):
                     relevance += float(tpe) / ((self.period_length - index) * self.relevance_decay)
         return relevance
 
-    def build_time_relevance_report(self,
-                                    anomaly_data,
-                                    take=3,
-                                    with_siblings=False):
+    def build_time_relevance_report(self):
         report = []
-        for metric, metric_obj in anomaly_data.items():
+        for metric, metric_obj in self.anomaly_data.items():
             if self. __filter_metrics(metric):
                 relevance = self.__relevance_function(metric_obj)
                 report.append((metric, relevance))
+            else:
+                print("filtered metric: %s" % metric)
         report = sorted(report, key=lambda x: -x[1])
         return report
 
-    def build_incidents_report(self, data):
-        anomaly_data = dict(data)
-        relevance_report = self.build_time_relevance_report(anomaly_data)
+    def build_incidents_report(self):
+        relevance_report = self.build_time_relevance_report()
         incidents_report = {}
         for i in range(len(relevance_report)):
             added = False
             for key, incident_obj in incidents_report.items():
                 if not added:
-                    added = self.__add_to_incindent(incident_obj, anomaly_data, relevance_report[i])
+                    added = self.__add_to_incindent(incident_obj, relevance_report[i])
 
             if not added:
-                self.__create_incident(incidents_report, anomaly_data, relevance_report[i])
+                self.__create_incident(incidents_report, relevance_report[i])
         return incidents_report, relevance_report
 
 
-    def __add_to_incindent(self, incident_obj, anomaly_data, report_item):
+    def __add_to_incindent(self, incident_obj, report_item):
         incident_range = incident_obj.get('range') or []
         added = False
-        for key, ranges in anomaly_data[report_item[0]].get('ranges').items():
+        for key, ranges in self.anomaly_data[report_item[0]].get('ranges').items():
             for range in ranges:
                 if (incident_range[0] - self.causal_sensitivity) < range[1] < (incident_range[1] + self.causal_sensitivity):
                     incident_range = [min(incident_range[0], range[0]), max(incident_range[1], range[1])]
                     incident_obj['metrics'].append(report_item[0])
                     added = True
+                else:
+                    print("__add_to_incindent: skipped range=%s for report_item=%s" % (str(range), str(report_item)))
 
         if added:
             incident_obj['range'] = incident_range
-
+            print("__add_to_incindent: added report_item=%s" % str(report_item))
+        else:
+            print("__add_to_incindent: skipped report_item=%s" % str(report_item))
         return added
 
 
-    def __create_incident(self, incidents_report, anomaly_data, report_item):
+    def __create_incident(self, incidents_report, report_item):
         incident_range = [self.period_length, self.period_length]
         added = False
-        for key, ranges in anomaly_data[report_item[0]].get('ranges').items():
+        for _, ranges in self.anomaly_data[report_item[0]].get('ranges').items():
             for range in ranges:
                 if (incident_range[0] - self.causal_sensitivity) < range[1] < (incident_range[1] + self.causal_sensitivity):
                     incident_range = [min(incident_range[0], range[0]), max(incident_range[1], range[1])]
@@ -111,8 +131,13 @@ class Aggregator(object):
                     else:
                         incident_range = [min(incident_range[0], range[0]), max(incident_range[1], range[1])]
                         incident_obj['metrics'].append(report_item[0])
+                else:
+                    print("__create_incident: skipped range=%s for report_item=%s" % (str(range), str(report_item)))
         if added:
             incident_obj['range'] = incident_range
+            print("__create_incident: added report_item=%s" % str(report_item))
+        else:
+            print("__create_incident: skipped report_item=%s" % str(report_item))
 
         return added
 
@@ -126,20 +151,18 @@ class VisualizeReports(object):
         self.metric_values = metric_values
         self.anomaly_data = anomaly_data
         self.incidents_report = incident_report
-        self.siblings_map = {
-            # TODO: do something with names    
-            'product': set(['product']),
-            'ratings': set(['ratings']),
-            'details': set(['details']),
-            'reviews': set(['reviews', 'reviews', 'reviews'])
-            # 'product': set(['productpage-v1']),
-            # 'ratings': set(['ratings-v1']),
-            # 'details': set(['details-v1']),
-            # 'reviews': set(['reviews-v1', 'reviews-v2', 'reviews-v3'])
-        }
-
+        self.siblings_map = {}
+        # update sibling map from anomaly data
+        for _, ad in anomaly_data.items():
+            sn = ad['service']
+            if sn not in self.siblings_map:
+                self.siblings_map[sn] = set()
+            self.siblings_map[sn].add(ad['pod'])
+        print("VisualizeReports: incidents_report=%s" % (len(self.incidents_report), self.incidents_report))
+        print("VisualizeReports: siblings_map=%s" % (self.siblings_map))
 
     def visualize_with_siblings(self, out_f):
+
         number_of_metrics = len(self.incidents_report.get('metrics'))
         fig, axx = plt.subplots(number_of_metrics, 1, sharex=True,
                                 figsize=(9, 3 + 2 * number_of_metrics),
@@ -169,26 +192,25 @@ class VisualizeReports(object):
 
         return result
 
-
-
     def __plot_metric(self, ax, metric_code):
         prop_cycle = plt.rcParams['axes.prop_cycle']
         colors = prop_cycle.by_key()['color']
 
-        # TODO: something with parsing names..
-        parts = metric_code.split('|', 1)
-        app_tpe = parts[0]
-        metric_id = parts[1]
+        # exmaple of metric:
+        # product|cluster.inbound|9080|http|productpage.default.svc.cluster.local.internal.upstream_rq_time|P75
+        parts = metric_code.split('|')
+        service = parts[4].split('.', 1)[0]
+        metric_id = parts[1:]
 
         ax.title.set_text(metric_id)
-        ax.set_ylabel('seconds')
+        ax.set_ylabel('ms')
 
         index = self.metric_values.index
 
         i = 0
-        for pod in self.siblings_map.get(app_tpe):
-            m_code = '{}|{}'.format(pod, metric_id)
-            ts = self.metric_values[m_code]
+        print("__plot_metric: service=%s, metric_code=%s" % (service, metric_code))
+        for pod in self.siblings_map.get(service):
+            ts = self.metric_values[metric_code]
             ax.plot(index, ts, color=colors[i], label=pod)
             i += 1
 
@@ -199,7 +221,7 @@ class VisualizeReports(object):
                 for start, end in ranges[k]:
                     kk = float(k)
                     c = k1 if kk == 1 else k2
-                    ax.axvspan(index[start], index[end - 1], color=c, alpha=0.16 * float(kk))
+                    ax.axvspan(index[start], index[min(len(index), end) - 1], color=c, alpha=0.16 * float(kk))
 
         ax.grid()
         ax.legend()
@@ -207,18 +229,19 @@ class VisualizeReports(object):
 
 
 if __name__ == '__main__':
-    agg = Aggregator(255, 10)
-    with open('/Users/dmitry/pros/ngcops-pro/timeseries-vae-anomaly/data/anomaly.json', 'r') as f:
+    with open('{}/anomaly.json'.format(DATA_FOLDER), 'r') as f:
         an_data = json.load(f)
-    incidents, relevance = agg.build_incidents_report(an_data)
+        agg = Aggregator(an_data)
+        incidents, relevance = agg.build_incidents_report()
 
-    metrics_df = pd.read_csv('/Users/dmitry/pros/ngcops-pro/timeseries-vae-anomaly/data/metrics_0_filter.csv')
-    for key, item in incidents.items():
-        visualisation = VisualizeReports(metrics_df, an_data, item)
-        visualisation.visualize_with_siblings('{}/{}_vis.png'.format(SAMPLES_FOLDER, key))
+        metrics_df = pd.read_csv('{}/metrics_0_filter.csv'.format(DATA_FOLDER))
+        for key, item in incidents.items():
+            print("make viz for incident: %s" % key)
+            visualisation = VisualizeReports(metrics_df, an_data, item)
+            visualisation.visualize_with_siblings('{}/{}_vis.png'.format(SAMPLES_FOLDER, key))
 
-    print('\n')
-    print(relevance)
-    print('\n')
-    print(incidents)
+        print('\n')
+        print(relevance)
+        print('\n')
+        print(incidents)
 

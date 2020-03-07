@@ -19,8 +19,8 @@ SLACK_CALLBACK_HOST = os.environ.get('SLACK_CALLBACK_HOST', 'localhost')
 PORT_NUMBER = os.environ.get('PORT_NUMBER', 8080)
 
 
-DATA_FOLDER = os.environ.get('DATA_FOLDER')
-SAMPLES_FOLDER = os.environ.get('SAMPLES_FOLDER')
+DATA_FOLDER = os.environ.get('DATA_FOLDER', '.')
+SAMPLES_FOLDER = os.environ.get('SAMPLES_FOLDER', '.')
 SLACK_CHANNEL = os.environ.get('SLACK_CHANNEL')
 
 
@@ -30,19 +30,19 @@ class ExperimentRunner(object):
         self.slack_client = slack.WebClient(os.environ.get('SHADOWCAT_BOT_TOKEN'))
 
     def run_experiment(self):
-        agg = Aggregator(255, 10)
         with open('{}/anomaly.json'.format(DATA_FOLDER), 'r') as f:
             an_data = json.load(f)
-        incidents, relevance = agg.build_incidents_report(an_data)
+            agg = Aggregator(an_data)
+            incidents, relevance = agg.build_incidents_report()
 
-        metrics_df = pd.read_csv('{}/metrics_0_filter.csv'.format(DATA_FOLDER))
-        for key, item in incidents.items():
-            image_file = '{}_viz.png'.format(key)
-            visualisation = VisualizeReports(metrics_df, an_data, item)
-            visualisation.visualize_with_siblings('{}/{}'.format(SAMPLES_FOLDER, image_file))
+            metrics_df = pd.read_csv('{}/metrics_0_filter.csv'.format(DATA_FOLDER))
+            for key, item in incidents.items():
+                image_file = '{}_viz.png'.format(key)
+                visualisation = VisualizeReports(metrics_df, an_data, item)
+                visualisation.visualize_with_siblings('{}/{}'.format(SAMPLES_FOLDER, image_file))
 
-            self.__upload_file('{}/{}'.format(SAMPLES_FOLDER, image_file), image_file)
-            self.__run_incident_report_buttons(key, image_file)
+                self.__upload_file('{}/{}'.format(SAMPLES_FOLDER, image_file), image_file)
+                self.__run_incident_report_buttons(key, image_file)
 
     def run_runbook(self):
         self.slack_client.api_call(
@@ -178,9 +178,9 @@ class ExperimentRunner(object):
 if __name__ == '__main__':
     # exp = ExperimentRunner()
     # exp.run_experiment()
-        agg = Aggregator(255, 10)
-        with open('anomaly.json', 'r') as f:
-            an_data = json.load(f)
+    with open('anomaly.json', 'r') as f:
+        an_data = json.load(f)
+        agg = Aggregator(an_data)
         incidents, relevance = agg.build_incidents_report(an_data)
 
         metrics_df = pd.read_csv('metrics_0_filter.csv')
