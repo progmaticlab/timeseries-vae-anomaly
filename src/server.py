@@ -57,9 +57,11 @@ class UserResponse(object):
 
 class Server(BaseHTTPRequestHandler):
 
-    def __init__(self):
-        self.experiment = ExperimentRunner()
-        self.interactive_responses = []
+    experiment = ExperimentRunner()
+    interactive_responses = list()
+
+    def __register_payload(self, payload):
+        pass
 
     def do_HEAD(self):
         return
@@ -87,12 +89,16 @@ class Server(BaseHTTPRequestHandler):
                         for e in i['elements']:
                             if e['value'] != action_value:
                                 continue
-                            url = e.get('url')
+                            button, cmd, param, *_  = e['value'].split(':', 2) + [None, None]
+                            if cmd == 'url':
+                                url = param
                             break
+                    self.__register_payload(payload_unqoute)
                     if url:
                         post_request(url, post_body)
+                    
                 elif self.path.startswith('/slack/interactive'):
-                        action_value, incident = action_value.split(':', 1) + [None]
+                        action_value, incident, *_ = action_value.split(':', 1) + [None]
                         if action_value == 'suggestion_1_on':
                             self.experiment.run_runbook()
                         elif action_value == 'suggestion_1_explain':

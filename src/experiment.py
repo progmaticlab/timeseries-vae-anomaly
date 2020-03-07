@@ -130,7 +130,7 @@ class ExperimentRunner(object):
                                 "text": "Use Suggested RunBook"
                             },
                             "style": "primary",
-                            "value": "suggestion_1_on:{}" % incident_key,
+                            "value": "suggestion_1_on:%s" % incident_key,
                             # "url": "{}/command/run".format(base_url)
                         }, {
                             "type": "button",
@@ -139,7 +139,7 @@ class ExperimentRunner(object):
                                 "text": "Read Suggested RunBook"
                             },
                             "style": "primary",
-                            "value": "suggestion_1_explain:",
+                            "value": "suggestion_1_explain",
                             # "url": "{}/command/explain".format(base_url)
                         }, {
                             "type": "button",
