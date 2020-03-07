@@ -14,24 +14,52 @@ from response.imageHandler import ImageHandler
 from response.badRequestHandler import BadRequestHandler
 from response.okHandler import OkHandler
 from response.slackHandler import SlackHandler
+from response.accessDeniedHandler import AccessDeniedHandler
 
 from experiment import ExperimentRunner
+
 
 HOST_NAME = os.environ.get('HOST_NAME', '')
 PORT_NUMBER = int(os.environ.get('PORT_NUMBER', 8080))
 SLACK_CHANNEL = os.environ.get('SLACK_CHANNEL')
 
-runner = ExperimentRunner()
+APPROVED_APPS_TOKENS = os.environ.get('APPROVED_APPS', ':')
 
+APPROVED_APPS = [
+    {
+        'name': 'skynet',
+        'app_id': 'AU73B5P24',
+        'client_id': '959111601632.959113193072',
+        'verification_token': APPROVED_APPS_TOKENS[0]
+    },
+    {
+        'name': 'Shadowcat',
+        'app_id': 'AUP4CEVEY',
+        'client_id': '917543802743.975148505508',
+        'verification_token': APPROVED_APPS_TOKENS[1]
+    }
+]
 
 def post_request(url, post_body):
     print("proxy post request to: %s" % url)
     requests.post(url, post_body)
 
 
+def check_auth(payload):
+    # TODO: check app against APPROVED_APPS
+    return True
+
+
+class UserResponse(object):
+    def __init__(self, payload):
+        self.payload = payload
+
+
 class Server(BaseHTTPRequestHandler):
 
-    experiment = ExperimentRunner()
+    def __init__(self):
+        self.experiment = ExperimentRunner()
+        self.interactive_responses = []
 
     def do_HEAD(self):
         return
@@ -47,28 +75,32 @@ class Server(BaseHTTPRequestHandler):
             payload_unqoute = urllib.parse.unquote(payload)
             test_data = json.loads(payload_unqoute)
             print("payload: ", test_data)
-            action_value = test_data['actions'][0]['value']
-            print("action: ", action_value)
-            if self.path.startswith('/slack/proxy'):
-                blocks = test_data['message']['blocks']
-                url = None
-                for i in test_data['message']['blocks']:
-                    if i['type'] != 'actions':
-                        continue
-                    for e in i['elements']:
-                        if e['value'] != action_value:
+            if check_auth(payload):
+                action_value = test_data['actions'][0]['value']
+                print("action: ", action_value)
+                if self.path.startswith('/slack/proxy'):
+                    blocks = test_data['message']['blocks']
+                    url = None
+                    for i in test_data['message']['blocks']:
+                        if i['type'] != 'actions':
                             continue
-                        url = e['url']
-                        break
-                if url:
-                    post_request(url, post_body)
-            elif self.path.startswith('/slack/interactive'):
-                    if action_value == 'suggestion_1_on':
-                        self.experiment.run_runbook()
-                    elif action_value == 'suggestion_1_explain':
-                        self.experiment.explain_runbook()
+                        for e in i['elements']:
+                            if e['value'] != action_value:
+                                continue
+                            url = e.get('url')
+                            break
+                    if url:
+                        post_request(url, post_body)
+                elif self.path.startswith('/slack/interactive'):
+                        action_value, incident = action_value.split(':', 1) + [None]
+                        if action_value == 'suggestion_1_on':
+                            self.experiment.run_runbook()
+                        elif action_value == 'suggestion_1_explain':
+                            self.experiment.explain_runbook()
+                else:
+                    handler = BadRequestHandler()
             else:
-                handler = BadRequestHandler()
+                handler = AccessDeniedHandler()
         else:
             handler = BadRequestHandler()
 
