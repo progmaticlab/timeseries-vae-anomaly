@@ -23,7 +23,7 @@ HOST_NAME = os.environ.get('HOST_NAME', '')
 PORT_NUMBER = int(os.environ.get('PORT_NUMBER', 8080))
 SLACK_CHANNEL = os.environ.get('SLACK_CHANNEL')
 
-APPROVED_APPS_TOKENS = os.environ.get('APPROVED_APPS', ':')
+APPROVED_APPS_TOKENS = os.environ.get('APPROVED_APPS_TOKENS', ':').split(':')
 
 APPROVED_APPS = [
     {
