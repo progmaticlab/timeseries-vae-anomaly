@@ -67,17 +67,20 @@ class Server(BaseHTTPRequestHandler):
     max_payloads = 100
 
     def __register_payload(self, action_value, payload):
+        print("__register_payload: %s" % action_value)
         p = Payload(action_value, payload)
         while len(self.interactive_responses) > self.max_payloads:
             self.__pop_payload()
         self.interactive_responses.append(p)
 
     def __pop_payload(self):
+        p = None
         try:
-            return self.self.interactive_responses.pop(0)
+            p = self.interactive_responses.pop(0)
         except:
             pass
-        return None
+        print("__pop_payload: %s" % p)
+        return p
 
     def do_HEAD(self):
         return
@@ -138,7 +141,7 @@ class Server(BaseHTTPRequestHandler):
         elif self.path.startswith('/analysis/response'):
             payload = self.__pop_payload()
             action = payload.action if payload else ''
-            handler = OkHandler(content_type='text/plain', data=action)
+            handler = OkHandler(data=action)
         elif self.path.startswith('/slack/command'):
             print('{} slack command received'.format(self.path))
             handler = SlackHandler(self.experiment)
