@@ -40,6 +40,7 @@ class ExperimentRunner(object):
                 image_file = '{}_viz.png'.format(key)
                 visualisation = VisualizeReports(metrics_df, an_data, item)
                 visualisation.visualize_with_siblings('{}/{}'.format(SAMPLES_FOLDER, image_file))
+                print(key, item)
                 self.__upload_file('{}/{}'.format(SAMPLES_FOLDER, image_file), image_file)
                 self.__run_incident_report_buttons(key, item['pod'], image_file)
 
@@ -129,7 +130,7 @@ class ExperimentRunner(object):
                                 "text": "Use Suggested RunBook"
                             },
                             "style": "primary",
-                            "value": "suggestion_1_on:%s" % incident_key,
+                            "value": "suggestion_1_on:%s" % pod,
                             # "url": "{}/command/run".format(base_url)
                         }, {
                             "type": "button",
@@ -138,7 +139,7 @@ class ExperimentRunner(object):
                                 "text": "Read Suggested RunBook"
                             },
                             "style": "primary",
-                            "value": "suggestion_1_explain",
+                            "value": "suggestion_1_explain:%s" % pod,
                             # "url": "{}/command/explain".format(base_url)
                         }, {
                             "type": "button",
@@ -165,7 +166,7 @@ class ExperimentRunner(object):
                                 "text": "This is not an anomaly"
                             },
                             "style": "primary",
-                            "value": "negative_case",
+                            "value": "negative_case:%s" % pod,
                             # "url": "{}/command/negative".format(base_url)
                         }]
                     }
