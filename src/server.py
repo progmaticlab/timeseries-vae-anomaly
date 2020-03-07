@@ -68,9 +68,9 @@ class Server(BaseHTTPRequestHandler):
 
     def __register_payload(self, action_value, payload):
         p = Payload(action_value, payload)
+        while len(self.interactive_responses) > self.max_payloads:
+            self.__pop_payload()
         self.interactive_responses.append(p)
-        while len(self.interactive_responses.append) > self.max_payloads:
-            self.interactive_responses.pop(0)
 
     def __pop_payload(self):
         try:
@@ -85,7 +85,6 @@ class Server(BaseHTTPRequestHandler):
     def do_POST(self):
         print('{} POST received '.format(self.path))
         handler = None
-        print('{} slack command received'.format(self.path))
         if self.path.startswith('/slack/'):
             content_length = int(self.headers['Content-Length'])
             post_body = self.rfile.read(content_length).decode("utf-8")
