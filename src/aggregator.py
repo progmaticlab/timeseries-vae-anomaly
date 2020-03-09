@@ -69,6 +69,8 @@ class Aggregator(object):
     def build_time_relevance_report(self):
         report = []
         for metric, metric_obj in self.anomaly_data.items():
+            if 'internal' in metric or 'external' in metric or 'http' not in metric:
+                continue
             if self. __filter_metrics(metric):
                 relevance = self.__relevance_function(metric_obj)
                 report.append((metric, relevance))
@@ -98,7 +100,9 @@ class Aggregator(object):
             for range in ranges:
                 if (incident_range[0] - self.causal_sensitivity) < range[1] < (incident_range[1] + self.causal_sensitivity):
                     incident_range = [min(incident_range[0], range[0]), max(incident_range[1], range[1])]
-                    incident_obj['metrics'].append(report_item[0])
+                    if report_item[0] not in incident_obj['metrics_set']:
+                        incident_obj['metrics'].append(report_item[0])
+                        incident_obj['metrics_set'].add(report_item[0])
                     added = True
                 else:
                     print("__add_to_incindent: skipped range=%s for report_item=%s" % (str(range), str(report_item)))
@@ -125,13 +129,16 @@ class Aggregator(object):
                             'id': inc_uuid,
                             'range': incident_range,
                             'metrics': [report_item[0]],
+                            'metrics_set': set([report_item[0]]),
                             'pod': self.anomaly_data[report_item[0]].get('pod')
                         }
                         incidents_report[inc_uuid] = incident_obj
                         added = True
                     else:
                         incident_range = [min(incident_range[0], range[0]), max(incident_range[1], range[1])]
-                        incident_obj['metrics'].append(report_item[0])
+                        # For more than 1 anomaly detected we don't need to add metrics again,
+                        # just need to have a correct range
+                        # incident_obj['metrics'].append(report_item[0])
                 else:
                     print("__create_incident: skipped range=%s for report_item=%s" % (str(range), str(report_item)))
         if added:
