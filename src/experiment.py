@@ -44,7 +44,7 @@ class ExperimentRunner(object):
                 self.__upload_file('{}/{}'.format(SAMPLES_FOLDER, image_file), image_file)
                 self.__run_incident_report_buttons(key, item['pod'], image_file)
 
-    def run_runbook(self):
+    def run_runbook(self, pod=''):
         self.slack_client.api_call(
             "chat.postMessage", json={
                 'channel': SLACK_CHANNEL,
@@ -54,6 +54,7 @@ class ExperimentRunner(object):
                         "text": {
                             "type": "mrkdwn",
                             "text":
+                                "Problematic pod " + (pod if pod else "") + " is replaced.\n"
                                 "Jira Production Change management Ticket `JIRA-123` is created for this change\n" +
                                 "All the operational steps will be reported to Ticketing system\n" +
                                 "The resolution will be posted to this channel"
@@ -63,7 +64,7 @@ class ExperimentRunner(object):
                 ]
             })
 
-    def explain_runbook(self):
+    def explain_runbook(self, pod=''):
         self.slack_client.api_call(
             "chat.postMessage", json={
                 'channel': SLACK_CHANNEL,
@@ -74,20 +75,12 @@ class ExperimentRunner(object):
                             "type": "mrkdwn",
                             "text":
                                 "Suggested Runbook consists of the following step\n" +
-                                " * create new instance of `reviews` pod\n" +
-                                " * healthcheck for the new instance of `reviews` pod\n" +
-                                " * route 3% of traffic to the new instance of  `reviews` pod\n" +
-                                " * include the new instance of  `reviews` pod into load balancing pool \n" +
-                                " * decommission corrupted instance of `reviews` pod"
-
+                                " * replace problematic pod " + (pod if pod else '') + "\n" +
+                                " * create Jira ticket\n"
                         }
                     }
                 ]
             })
-
-    def more_context(self):
-        print('explain')
-
 
     def __upload_file(self, file_path, filename):
         self.slack_client.files_upload(channels=SLACK_CHANNEL, file=file_path, title=filename)
@@ -136,7 +129,7 @@ class ExperimentRunner(object):
                             "type": "button",
                             "text": {
                                 "type": "plain_text",
-                                "text": "Read Suggested RunBook"
+                                "text": "Describe Suggested RunBook"
                             },
                             "style": "primary",
                             "value": "suggestion_1_explain:%s" % pod,
@@ -145,19 +138,10 @@ class ExperimentRunner(object):
                             "type": "button",
                             "text": {
                                 "type": "plain_text",
-                                "text": "More Context"
-                            },
-                            "style": "primary",
-                            "value": "more_context",
-                            # "url": "{}/command/context".format(base_url)
-                        }, {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
                                 "text": "I will fix myself"
                             },
                             "style": "danger",
-                            "value": "operator_flow",
+                            "value": "operator_flow:%s" % pod,
                             # "url": "{}/command/operator".format(base_url)
                         }, {
                             "type": "button",

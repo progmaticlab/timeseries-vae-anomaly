@@ -106,11 +106,18 @@ class Server(BaseHTTPRequestHandler):
                         post_request(url, post_body)
                     
                 elif self.path.startswith('/slack/interactive'):
-                        action_value, incident, *_ = action_value.split(':', 1) + [None]
+                        action_value, pod, *_ = action_value.split(':', 1) + [None]
                         if action_value == 'suggestion_1_on':
-                            self.experiment.run_runbook()
+                            self.experiment.run_runbook(pod=pod)
                         elif action_value == 'suggestion_1_explain':
-                            self.experiment.explain_runbook()
+                            self.experiment.explain_runbook(pod=pod)
+
+                elif self.path.startswith('/slack/command'):
+                    print('{} slack command received'.format(self.path))
+                    action_value, pod, *_ = action_value.split(':', 1) + [None]
+                    handler = SlackHandler(self.experiment, pod)
+                    handler.execute(self.path)
+
                 else:
                     handler = BadRequestHandler()
             else:
@@ -142,10 +149,6 @@ class Server(BaseHTTPRequestHandler):
             payload = self.__pop_payload()
             action = payload.action if payload else ''
             handler = OkHandler(data=action)
-        elif self.path.startswith('/slack/command'):
-            print('{} slack command received'.format(self.path))
-            handler = SlackHandler(self.experiment)
-            handler.execute(self.path)
         else:
             handler = StaticHandler()
             handler.find(self.path)
