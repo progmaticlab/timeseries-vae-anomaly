@@ -54,7 +54,7 @@ class Aggregator(object):
 
     def __filter_metrics(self, m):
         if '|P' in m:
-            return True if '|P99' in m else False
+            return True if '|P99' in m or '|P95' in m else False
         return True
 
     def __relevance_function(self, anomaly_obj):
@@ -166,6 +166,12 @@ class VisualizeReports(object):
             if sn not in self.siblings_map:
                 self.siblings_map[sn] = set()
             self.siblings_map[sn].add(ad['pod'])
+        # hack: dublicate product as productpage and viceversa
+        if 'product' in self.siblings_map and 'productpage' not in self.siblings_map:
+            self.siblings_map['productpage'] = self.siblings_map['product']
+        if 'productpage' in self.siblings_map and 'product' not in self.siblings_map:
+            self.siblings_map['product'] = self.siblings_map['productpage']
+        # end
         print("VisualizeReports: incidents_report=%s" % (self.incidents_report))
         print("VisualizeReports: siblings_map=%s" % (self.siblings_map))
 
