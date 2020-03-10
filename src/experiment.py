@@ -109,7 +109,7 @@ class ExperimentRunner(object):
                             "text":
                                 ":arrow_up: Incident {} is created with the following anomaly in your infrastructure \n".format(incident_key) +
                                 "Within last month we observed similar problem 8 times\n" +
-                                "In 84% cases it was solved by replacing the problematic *review pod* [review-v2]"
+                                "In 84% cases it was solved by replacing the problematic pod {}".format(pod)
 
                         }
                     }, {
