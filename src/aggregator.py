@@ -184,12 +184,16 @@ class VisualizeReports(object):
     def visualize_with_siblings(self, out_f):
 
         number_of_metrics = len(self.incidents_report.get('metrics'))
+        print("number_of_metrics: ", number_of_metrics)
         fig, axx = plt.subplots(number_of_metrics, 1, sharex=True,
                                 figsize=(9, 3 + 2 * number_of_metrics),
                                 dpi=80)
         i = 0
         for metric in self.incidents_report.get('metrics'):
-            self.__plot_metric(axx[i], metric)
+            if number_of_metrics > 1:
+                self.__plot_metric(axx[i], metric)
+            else:
+                self.__plot_metric(axx, metric)
             i += 1
 
         label_period = int(self.metric_values.shape[0] / 10)
