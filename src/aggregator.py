@@ -109,6 +109,11 @@ class Aggregator(object):
 
         if added:
             incident_obj['range'] = incident_range
+            # TODO: hack for demo: patch pod to review till logic be added to reporter
+            pod = self.anomaly_data[report_item[0]].get('pod')
+            if pod and 'product' in incident_obj['pod'] and 'review' in pod:
+                incident_obj['pod'] = pod
+
             print("__add_to_incindent: added report_item=%s" % str(report_item))
         else:
             print("__add_to_incindent: skipped report_item=%s" % str(report_item))
@@ -118,6 +123,7 @@ class Aggregator(object):
     def __create_incident(self, incidents_report, report_item):
         incident_range = [self.period_length, self.period_length]
         added = False
+        incident_obj = {}
         for _, ranges in self.anomaly_data[report_item[0]].get('ranges').items():
             for range in ranges:
                 if (incident_range[0] - self.causal_sensitivity) < range[1] < (incident_range[1] + self.causal_sensitivity):
@@ -135,7 +141,7 @@ class Aggregator(object):
                         incidents_report[inc_uuid] = incident_obj
                         added = True
                     else:
-                        incident_range = [min(incident_range[0], range[0]), max(incident_range[1], range[1])]
+                        incident_range = [min(incident_range[0], range[0]), max(incident_range[1], range[1])]                         
                         # For more than 1 anomaly detected we don't need to add metrics again,
                         # just need to have a correct range
                         # incident_obj['metrics'].append(report_item[0])
