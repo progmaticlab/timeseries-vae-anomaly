@@ -60,6 +60,10 @@ class Payload(object):
     def action(self):
         return self._action
 
+    @property
+    def channel(self):
+        return self._data['channel']['name']
+
 
 class Server(BaseHTTPRequestHandler):
 
@@ -74,14 +78,23 @@ class Server(BaseHTTPRequestHandler):
             self.__pop_payload()
         self.interactive_responses.append(p)
 
-    def __pop_payload(self):
+    def __pop_payload(self, index=0):
         p = None
         try:
-            p = self.interactive_responses.pop(0)
-            print("__pop_payload: %s" % p.action)
+            p = self.interactive_responses.pop(index)
+            print("__pop_payload: index=%s: %s" % (index, p.action))
         except:
-            print("__pop_payload: no items")
+            print("__pop_payload: no items for index %s" % index)
         return p
+
+    def __pop_payload_for_channel(self, channel):
+        print("__pop_payload_for_channel: %s" % channel)
+        # TODO: assuming that it is single threaded server
+        index=0
+        for i in self.interactive_responses:
+            if i.channel == channel:
+                return self.__pop_payload(index)
+            index += 1
 
     def do_HEAD(self):
         return
@@ -147,7 +160,10 @@ class Server(BaseHTTPRequestHandler):
             self.experiment.run_experiment()
             handler = OkHandler()
         elif self.path.startswith('/analysis/response'):
-            payload = self.__pop_payload()
+            if self.path == '/analysis/response' or self.path == '/analysis/response/':
+                payload = self.__pop_payload()
+            else:
+                payload = self.__pop_payload_for_channel(self.path.split('/', 3)[3])
             action = payload.action if payload else ''
             handler = OkHandler(data=action)
         else:
