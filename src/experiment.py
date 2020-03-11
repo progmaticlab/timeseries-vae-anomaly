@@ -43,21 +43,21 @@ class ExperimentRunner(object):
             for key, item in incidents.items():
                 if 'product' not in item['service']:
                     continue
-                self.__do_report(key, item)
+                self.__do_report(metrics_df, an_data, key, item)
 
             # report all excetp product and reviews
             for key, item in incidents.items():
                 if 'product' in item['service'] or 'reviews' in item['service']:
                     continue
-                self.__do_report(key, item)
+                self.__do_report(metrics_df, an_data, key, item)
 
             # report reviews
             for key, item in incidents.items():
                 if 'reviews' not in item['service']:
                     continue
-                self.__do_report(key, item, button=True)
+                self.__do_report(metrics_df, an_data, key, item, button=True)
 
-    def __do_report(self, key, item, button=False):
+    def __do_report(self, metrics_df, an_data, key, item, button=False):
         image_file = '{}_viz.png'.format(key)
         visualisation = VisualizeReports(metrics_df, an_data, item)
         visualisation.visualize_with_siblings('{}/{}'.format(SAMPLES_FOLDER, image_file))
