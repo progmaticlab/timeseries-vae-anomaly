@@ -69,7 +69,7 @@ class Aggregator(object):
     def build_time_relevance_report(self):
         report = []
         for metric, anomaly_obj in self.anomaly_data.items():
-            if not self. __filter_metrics(metric):
+            if not self.__filter_metrics(metric):
                 print("skipped filtered metric: %s" % metric)
                 continue
             relevance = self.__relevance_function(anomaly_obj)
@@ -101,7 +101,6 @@ class Aggregator(object):
                     metric_name = self.__get_short_metric_name(report_item[0])
                     if metric_name not in incident_obj['metrics']:
                         incident_obj['metrics'].append(metric_name)
-                        # incident_obj['metrics_set'].add(metric_name)
                     added = True
                 else:
                     print("__add_to_incindent: skipped range=%s for report_item=%s" % (str(range), str(report_item)))
@@ -147,7 +146,6 @@ class Aggregator(object):
                         'id': inc_uuid,
                         'range': incident_range,
                         'metrics': [metric_name],
-                        # 'metrics_set': set([metric_name]),
                         'pod': self.anomaly_data[report_item[0]].get('pod'),
                         'service': self.anomaly_data[report_item[0]].get('service'),
                     }
@@ -200,8 +198,8 @@ class VisualizeReports(object):
         fig, axx = plt.subplots(number_of_metrics, 1, sharex=True,
                                 figsize=(9, 3 + 2 * number_of_metrics),
                                 dpi=80)
-        service = self.incidents_report.get('service')
         i = 0
+        service = self.incidents_report.get('service')
         for metric in self.incidents_report.get('metrics'):
             if number_of_metrics > 1:
                 self.__plot_metric(axx[i], service, metric)
@@ -226,7 +224,6 @@ class VisualizeReports(object):
         for i in range(len(indices)):
             tick = now - delta * (last - indices[i])
             result.append(tick.strftime('%H:%M:%S'))
-
         return result
 
     def __plot_metric(self, ax, service, metric_code):
