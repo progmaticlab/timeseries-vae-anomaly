@@ -52,6 +52,7 @@ class Aggregator(object):
         # TODO: metrics are filtered at monitor side
         # if 'internal' in metric or 'external' in metric or 'http' not in metric:
         #     return False
+        # TODO: end
         if '|P' in metric:
             return '|P99' in metric or '|P95' in metric
         return True
@@ -81,10 +82,12 @@ class Aggregator(object):
         incidents_report = {}
         for i in range(len(relevance_report)):
             added = False
+            rel_report_srv = self.anomaly_data[relevance_report[i][0]]['service']
             for key, incident_obj in incidents_report.items():
+                if incident_obj['service'] != rel_report_srv:
+                    continue
                 if not added:
                     added = self.__add_to_incindent(incident_obj, relevance_report[i])
-
             if not added:
                 self.__create_incident(incidents_report, relevance_report[i])
         return incidents_report, relevance_report
@@ -92,8 +95,8 @@ class Aggregator(object):
     def __add_to_incindent(self, incident_obj, report_item):
         incident_range = incident_obj.get('range') or []
         added = False
-        for key, ranges in self.anomaly_data[report_item[0]].get('ranges').items():
-            srv = self.anomaly_data[report_item[0]]['service']
+        srv = self.anomaly_data[report_item[0]]['service']
+        for key, ranges in self.anomaly_data[report_item[0]].get('ranges').items():                
             sensitivity = self.period_length_map[srv]['sensitivity']
             for range in ranges:
                 if (incident_range[0] - sensitivity) < range[1] < (incident_range[1] + sensitivity):
@@ -108,10 +111,10 @@ class Aggregator(object):
         if added:
             incident_obj['range'] = incident_range
             # TODO: hack for demo: patch pod to review till logic be added to reporter
-            pod = self.anomaly_data[report_item[0]].get('pod')
-            if pod and 'product' in incident_obj['pod'] and 'review' in pod:
-                incident_obj['pod'] = pod
-                incident_obj['service'] = self.anomaly_data[report_item[0]].get('service')
+            # pod = self.anomaly_data[report_item[0]].get('pod')
+            # if pod and 'product' in incident_obj['pod'] and 'review' in pod:
+            #     incident_obj['pod'] = pod
+            #     incident_obj['service'] = self.anomaly_data[report_item[0]].get('service')
 
             print("__add_to_incindent: added report_item=%s" % str(report_item))
         else:

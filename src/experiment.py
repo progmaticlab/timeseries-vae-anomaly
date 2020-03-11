@@ -42,7 +42,9 @@ class ExperimentRunner(object):
                 visualisation.visualize_with_siblings('{}/{}'.format(SAMPLES_FOLDER, image_file))
                 print("Report incident %s for pod %s" % (key, item['pod']))
                 self.__upload_file('{}/{}'.format(SAMPLES_FOLDER, image_file), image_file)
-                self.__run_incident_report_buttons(key, item['pod'], image_file)
+                # TODO: for now report buttons only for reviews
+                if 'review' == item['service']:
+                    self.__run_incident_report_buttons(key, item['pod'], image_file)
 
     def run_runbook(self, pod=''):
         self.slack_client.api_call(
