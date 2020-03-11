@@ -69,13 +69,14 @@ class Aggregator(object):
     def build_time_relevance_report(self):
         report = []
         for metric, metric_obj in self.anomaly_data.items():
-            if 'internal' in metric or 'external' in metric or 'http' not in metric:
-                continue
+            # TODO: metrics are filtered at monitor side
+            # if 'internal' in metric or 'external' in metric or 'http' not in metric:
+            #     continue
             if self. __filter_metrics(metric):
                 relevance = self.__relevance_function(metric_obj)
                 report.append((metric, relevance))
             else:
-                print("filtered metric: %s" % metric)
+                print("skipped filtered metric: %s" % metric)
         report = sorted(report, key=lambda x: -x[1])
         return report
 
