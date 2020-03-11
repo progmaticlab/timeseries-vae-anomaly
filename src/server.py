@@ -200,7 +200,6 @@ if __name__ == '__main__':
     httpd = HTTPServer((HOST_NAME, PORT_NUMBER), Server)
     httpd.timeout = SERVER_TIMEOUT
     httpd.socket.settimeout(SERVER_TIMEOUT)
-    print("socket options: blocking: %s, timeout: %s", (httpd.socket.getblocking(), httpd.socket.gettimeout()))
     print(time.asctime(), 'Server UP for channel %s - %s:%s' % (SLACK_CHANNEL, HOST_NAME, PORT_NUMBER))
     try:
         httpd.serve_forever()
