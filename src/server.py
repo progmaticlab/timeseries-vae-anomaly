@@ -21,7 +21,7 @@ from experiment import ExperimentRunner
 
 HOST_NAME = os.environ.get('HOST_NAME', '')
 PORT_NUMBER = int(os.environ.get('PORT_NUMBER', 8080))
-SERVER_TIMEOUT = int(os.environ.get('SERVER_TIMEOUT', 5))
+SERVER_TIMEOUT = int(os.environ.get('SERVER_TIMEOUT', 30))
 SLACK_CHANNEL = os.environ.get('SLACK_CHANNEL')
 
 APPROVED_APPS_TOKENS = os.environ.get('APPROVED_APPS_TOKENS', ':').split(':')
@@ -183,6 +183,8 @@ if __name__ == '__main__':
         sys.exit(-1)
     httpd = HTTPServer((HOST_NAME, PORT_NUMBER), Server)
     httpd.timeout = SERVER_TIMEOUT
+    httpd.socket.settimeout(SERVER_TIMEOUT)
+    print("socket options: blocking: %s, timeout: %s", (httpd.socket.getblocking(), httpd.socket.gettimeout()))
     print(time.asctime(), 'Server UP for channel %s - %s:%s' % (SLACK_CHANNEL, HOST_NAME, PORT_NUMBER))
     try:
         httpd.serve_forever()
