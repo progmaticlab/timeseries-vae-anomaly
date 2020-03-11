@@ -36,15 +36,29 @@ class ExperimentRunner(object):
             incidents, relevance = agg.build_incidents_report()
 
             metrics_df = pd.read_csv('{}/metrics_0_filter.csv'.format(DATA_FOLDER))
+
+            # TODO: for now report buttons only for reviews
+
+            # report products
             for key, item in incidents.items():
+                if 'product' not in item['service']:
+                    continue
                 image_file = '{}_viz.png'.format(key)
                 visualisation = VisualizeReports(metrics_df, an_data, item)
                 visualisation.visualize_with_siblings('{}/{}'.format(SAMPLES_FOLDER, image_file))
                 print("Report incident %s for pod %s" % (key, item['pod']))
                 self.__upload_file('{}/{}'.format(SAMPLES_FOLDER, image_file), image_file)
-                # TODO: for now report buttons only for reviews
-                if 'review' == item['service']:
-                    self.__run_incident_report_buttons(key, item['pod'], image_file)
+
+            # report reviews
+            for key, item in incidents.items():
+                if 'reviews' not in item['service']:
+                    continue
+                image_file = '{}_viz.png'.format(key)
+                visualisation = VisualizeReports(metrics_df, an_data, item)
+                visualisation.visualize_with_siblings('{}/{}'.format(SAMPLES_FOLDER, image_file))
+                print("Report incident %s for pod %s" % (key, item['pod']))
+                self.__upload_file('{}/{}'.format(SAMPLES_FOLDER, image_file), image_file)
+                self.__run_incident_report_buttons(key, item['pod'], image_file)
 
     def run_runbook(self, pod=''):
         self.slack_client.api_call(
