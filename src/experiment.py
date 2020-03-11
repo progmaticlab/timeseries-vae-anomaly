@@ -43,22 +43,29 @@ class ExperimentRunner(object):
             for key, item in incidents.items():
                 if 'product' not in item['service']:
                     continue
-                image_file = '{}_viz.png'.format(key)
-                visualisation = VisualizeReports(metrics_df, an_data, item)
-                visualisation.visualize_with_siblings('{}/{}'.format(SAMPLES_FOLDER, image_file))
-                print("Report incident %s for pod %s" % (key, item['pod']))
-                self.__upload_file('{}/{}'.format(SAMPLES_FOLDER, image_file), image_file)
+                self.__do_report(key, item)
+
+            # report all excetp product and reviews
+            for key, item in incidents.items():
+                if 'product' in item['service'] or 'reviews' in item['service']:
+                    continue
+                self.__do_report(key, item)
 
             # report reviews
             for key, item in incidents.items():
                 if 'reviews' not in item['service']:
                     continue
-                image_file = '{}_viz.png'.format(key)
-                visualisation = VisualizeReports(metrics_df, an_data, item)
-                visualisation.visualize_with_siblings('{}/{}'.format(SAMPLES_FOLDER, image_file))
-                print("Report incident %s for pod %s" % (key, item['pod']))
-                self.__upload_file('{}/{}'.format(SAMPLES_FOLDER, image_file), image_file)
-                self.__run_incident_report_buttons(key, item['pod'], image_file)
+                self.__do_report(key, item, button=True)
+
+    def __do_report(self, key, item, button=False):
+        image_file = '{}_viz.png'.format(key)
+        visualisation = VisualizeReports(metrics_df, an_data, item)
+        visualisation.visualize_with_siblings('{}/{}'.format(SAMPLES_FOLDER, image_file))
+        print("Report incident %s for pod %s" % (key, item['pod']))
+        self.__upload_file('{}/{}'.format(SAMPLES_FOLDER, image_file), image_file)
+        if button:
+            self.__run_incident_report_buttons(key, item['pod'], image_file)
+
 
     def run_runbook(self, pod=''):
         self.slack_client.api_call(
