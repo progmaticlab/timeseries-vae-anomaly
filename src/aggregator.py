@@ -112,6 +112,7 @@ class Aggregator(object):
             pod = self.anomaly_data[report_item[0]].get('pod')
             if pod and 'product' in incident_obj['pod'] and 'review' in pod:
                 incident_obj['pod'] = pod
+                incident_obj['service'] = self.anomaly_data[report_item[0]].get('service')
 
             print("__add_to_incindent: added report_item=%s" % str(report_item))
         else:
