@@ -160,31 +160,29 @@ class VisualizeReports(object):
         self.metric_values = metric_values
         self.anomaly_data = anomaly_data
         self.incidents_report = incident_report
+        self.siblings_map = {}
+        for metric, ad in anomaly_data.items():
+            service = ad['service']
+            if service not in self.siblings_map:
+                self.siblings_map[service] = dict()
+            short_metric = self.anomaly_data[metric].get('metric')
+            if short_metric not in self.siblings_map[service]:
+                self.siblings_map[service][short_metric] = set()
+            self.siblings_map[service][short_metric].add(metric)
         print("VisualizeReports: incidents_report=%s" % (self.incidents_report))
+        print("VisualizeReports: siblings_map=%s" % (self.siblings_map))
 
     def visualize_with_siblings(self, out_f):
-        service2metrics_map = dict()
-        for metric in self.incidents_report.get('metrics'):
-            service = self.anomaly_data[metric].get('service')
-            if service not in service2metrics_map:
-                service2metrics_map[service] = dict()
-            short_metric = self.anomaly_data[metric].get('metric')
-            if short_metric not in service2metrics_map[service]:
-                service2metrics_map[service][short_metric] = set()
-            service2metrics_map[service][short_metric].add(metric)
-        
-        print("visualize_with_siblings: service2metrics_map: %s" % service2metrics_map)
         number_of_graphs = 0
-        for _, metrics in service2metrics_map.items():
+        for _, metrics in self.siblings_map.items():
             number_of_graphs += len(metrics)
 
         print("visualize_with_siblings: number_of_graphs: %s" % number_of_graphs)
         fig, axx = plt.subplots(number_of_graphs, 1, sharex=True,
-                                figsize=(9, 3 + 2 * number_of_graphs),
-                                dpi=80)
-        
+                                figsize=(9, 3 + 2 * number_of_graphs), dpi=80)
+
         i = 0
-        for service, metrics_map in service2metrics_map.items():
+        for service, metrics_map in self.siblings_map.items():
             for short_name, metrics in metrics_map.items():
                 print("visualize_with_siblings: short_name: %s, metrics: %s" % (short_name, metrics))
                 if number_of_graphs > 1:
@@ -194,12 +192,10 @@ class VisualizeReports(object):
                 i += 1
 
         label_period = int(self.metric_values.shape[0] / 10)
-
         xtick_location = self.metric_values.index.tolist()[::label_period]
         xtick_labels = self.__build_list_timestamps(xtick_location)
         plt.xticks(ticks=xtick_location, labels=xtick_labels, rotation=60, fontsize=12, horizontalalignment='center', alpha=.7)
         plt.yticks(fontsize=12, alpha=.7)
-
         plt.savefig(out_f)
 
     def __build_list_timestamps(self, indices):
