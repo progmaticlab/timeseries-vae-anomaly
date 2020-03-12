@@ -96,7 +96,7 @@ class Aggregator(object):
         incident_range = incident_obj.get('range') or []
         added = False
         srv = self.anomaly_data[report_item[0]]['service']
-        for key, ranges in self.anomaly_data[report_item[0]].get('ranges').items():                
+        for key, ranges in self.anomaly_data[report_item[0]].get('ranges').items():
             sensitivity = self.period_length_map[srv]['sensitivity']
             for range in ranges:
                 if (incident_range[0] - sensitivity) < range[1] < (incident_range[1] + sensitivity):
