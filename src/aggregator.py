@@ -80,57 +80,47 @@ class Aggregator(object):
     def build_incidents_report(self):
         relevance_report = self.build_time_relevance_report()
         incidents_report = {}
-        for i in range(len(relevance_report)):
+        for report_item in relevance_report:
             added = False
-            rel_report_srv = self.anomaly_data[relevance_report[i][0]]['service']
             for key, incident_obj in incidents_report.items():
-                if incident_obj['service'] != rel_report_srv:
-                    continue
                 if not added:
-                    added = self.__add_to_incindent(incident_obj, relevance_report[i])
+                    added = self.__add_to_incindent(incident_obj, report_item)
             if not added:
-                self.__create_incident(incidents_report, relevance_report[i])
+                self.__create_incident(incidents_report, report_item)
         return incidents_report, relevance_report
 
     def __add_to_incindent(self, incident_obj, report_item):
         incident_range = incident_obj.get('range') or []
         added = False
-        srv = self.anomaly_data[report_item[0]]['service']
-        for key, ranges in self.anomaly_data[report_item[0]].get('ranges').items():
-            sensitivity = self.period_length_map[srv]['sensitivity']
+        metric_name = report_item[0]
+        srv = self.anomaly_data[metric_name]['service']
+        sensitivity = self.period_length_map[srv]['sensitivity']
+        for key, ranges in self.anomaly_data[metric_name].get('ranges').items():
             for range in ranges:
                 if (incident_range[0] - sensitivity) < range[1] < (incident_range[1] + sensitivity):
                     incident_range = [min(incident_range[0], range[0]), max(incident_range[1], range[1])]
-                    metric_name = self.__get_short_metric_name(report_item[0])
                     if metric_name not in incident_obj['metrics']:
                         incident_obj['metrics'].append(metric_name)
                     added = True
                 else:
                     print("__add_to_incindent: skipped range=%s for report_item=%s" % (str(range), str(report_item)))
-
         if added:
             incident_obj['range'] = incident_range
-            # TODO: hack for demo: patch pod to review till logic be added to reporter
-            if 'reviews-v3' in incident_obj['pod']:
-                incident_obj['pod'] = self.anomaly_data[report_item[0]].get('pod')
-
             print("__add_to_incindent: added report_item=%s" % str(report_item))
         else:
             print("__add_to_incindent: skipped report_item=%s" % str(report_item))
         return added
 
-    def __get_short_metric_name(self, s):
-        return s.split('|', 1)[1]
-
     def __create_incident(self, incidents_report, report_item):
         added = False
         incident_obj = {}
         incident_range = [0, 0]
-        for _, ranges in self.anomaly_data[report_item[0]].get('ranges').items():
-            srv = self.anomaly_data[report_item[0]]['service']
-            period_length = self.period_length_map[srv]['period_length']
-            incident_range = [period_length, period_length]
-            sensitivity = self.period_length_map[srv]['sensitivity']
+        metric_name = report_item[0]
+        srv = self.anomaly_data[metric_name]['service']
+        period_length = self.period_length_map[srv]['period_length']
+        incident_range = [period_length, period_length]
+        sensitivity = self.period_length_map[srv]['sensitivity']
+        for _, ranges in self.anomaly_data[metric_name].get('ranges').items():
             for range in ranges:
                 if (incident_range[0] - sensitivity) < range[1] < (incident_range[1] + sensitivity):
                     # update incident range
@@ -138,17 +128,14 @@ class Aggregator(object):
                     if added:
                         # For more than 1 anomaly detected we don't need to add metrics again,
                         # just need to have a correct range
-                        # incident_obj['metrics'].append(report_item[0])
+                        # incident_obj['metrics'].append(metric_name)
                         continue
-                    # create new incident
+                    # create new incident object
                     inc_uuid = random.randint(1000000, 9000000)
-                    metric_name = self.__get_short_metric_name(report_item[0])
                     incident_obj = {
                         'id': inc_uuid,
                         'range': incident_range,
-                        'metrics': [metric_name],
-                        'pod': self.anomaly_data[report_item[0]].get('pod'),
-                        'service': self.anomaly_data[report_item[0]].get('service'),
+                        'metrics': [metric_name]
                     }
                     print('New incident is created {}'.format(incident_obj))
                     incidents_report[inc_uuid] = incident_obj
@@ -173,40 +160,38 @@ class VisualizeReports(object):
         self.metric_values = metric_values
         self.anomaly_data = anomaly_data
         self.incidents_report = incident_report
-        self.siblings_map = {}
-        self.pod2metric_prefix_map = {}
-        # update sibling map from anomaly data
-        for metric, ad in anomaly_data.items():
-            sn = ad['service']
-            if sn not in self.siblings_map:
-                self.siblings_map[sn] = set()
-            self.siblings_map[sn].add(ad['pod'])
-            self.pod2metric_prefix_map[sn + '|' + ad['pod']] = metric.split('|', 1)[0]
-
-        # hack: dublicate product as productpage and viceversa
-        if 'product' in self.siblings_map and 'productpage' not in self.siblings_map:
-            self.siblings_map['productpage'] = self.siblings_map['product']
-        if 'productpage' in self.siblings_map and 'product' not in self.siblings_map:
-            self.siblings_map['product'] = self.siblings_map['productpage']
-        # end
         print("VisualizeReports: incidents_report=%s" % (self.incidents_report))
-        print("VisualizeReports: siblings_map=%s" % (self.siblings_map))
-        print("VisualizeReports: pod2metric_prefix_map=%s" % (self.pod2metric_prefix_map))
 
     def visualize_with_siblings(self, out_f):
-        number_of_metrics = len(self.incidents_report.get('metrics'))
-        print("number_of_metrics: ", number_of_metrics)
-        fig, axx = plt.subplots(number_of_metrics, 1, sharex=True,
-                                figsize=(9, 3 + 2 * number_of_metrics),
-                                dpi=80)
-        i = 0
-        service = self.incidents_report.get('service')
+        service2metrics_map = dict()
         for metric in self.incidents_report.get('metrics'):
-            if number_of_metrics > 1:
-                self.__plot_metric(axx[i], service, metric)
-            else:
-                self.__plot_metric(axx, service, metric)
-            i += 1
+            service = self.anomaly_data[metric].get('service')
+            if service not in service2metrics_map:
+                service2metrics_map[service] = dict()
+            short_metric = self.anomaly_data[metric].get('metric')
+            if short_metric not in service2metrics_map[service]:
+                service2metrics_map[service][short_metric] = set()
+            service2metrics_map[service][short_metric].add(metric)
+        
+        print("visualize_with_siblings: service2metrics_map: %s" % service2metrics_map)
+        number_of_graphs = 0
+        for _, metrics in service2metrics_map.items():
+            number_of_graphs += len(metrics)
+
+        print("visualize_with_siblings: number_of_graphs: %s" % number_of_graphs)
+        fig, axx = plt.subplots(number_of_graphs, 1, sharex=True,
+                                figsize=(9, 3 + 2 * number_of_graphs),
+                                dpi=80)
+        
+        i = 0
+        for service, metrics_map in service2metrics_map.items():
+            for short_name, metrics in metrics_map.items():
+                print("visualize_with_siblings: short_name: %s, metrics: %s" % (short_name, metrics))
+                if number_of_graphs > 1:
+                    self.__plot_metric(axx[i], service, short_name, metrics)
+                else:
+                    self.__plot_metric(axx, service, short_name, metrics)
+                i += 1
 
         label_period = int(self.metric_values.shape[0] / 10)
 
@@ -217,7 +202,6 @@ class VisualizeReports(object):
 
         plt.savefig(out_f)
 
-
     def __build_list_timestamps(self, indices):
         result = []
         now = datetime.now() - (20 * delta)
@@ -227,35 +211,27 @@ class VisualizeReports(object):
             result.append(tick.strftime('%H:%M:%S'))
         return result
 
-    def __plot_metric(self, ax, service, metric_code):
+    def __plot_metric(self, ax, service, short_metric_name, metrics):
         prop_cycle = plt.rcParams['axes.prop_cycle']
         colors = prop_cycle.by_key()['color']
-
-        # exmaple of metric:
-        # product|cluster.inbound|9080|http|productpage.default.svc.cluster.local.internal.upstream_rq_time|P75
-        # parts = metric_code.split('|')
-        # service = parts[4].split('.', 1)[0]
-        # metric_id = parts[1:]
-
-        ax.title.set_text(metric_code)
+        ax.title.set_text(short_metric_name)
         ax.set_ylabel('ms')
 
         index = self.metric_values.index
-
         i = 0
-        print("__plot_metric: service=%s, metric_code=%s" % (service, metric_code))
-        for pod in self.siblings_map.get(service):
-            print("__plot_metric: service=%s, metric_code=%s, pod=%s" % (service, metric_code, pod))
-            full_metric_name = self.pod2metric_prefix_map[service + '|' + pod] + '|' + metric_code
-            ts = self.metric_values.get(full_metric_name)
+        print("__plot_metric: service=%s, metrics_list=%s" % (service, metrics))
+        for metric in metrics:
+            pod = self.anomaly_data[metric]['pod']
+            print("__plot_metric: service=%s, metric=%s, pod=%s" % (service, metric, pod))
+            ts = self.metric_values.get(metric)
             if ts is None or len(ts) == 0:
-                print("skipped " + full_metric_name)
+                print("WARNING: skipped metric: anomalys.json mismatch with metrics_0_filter.csv" + metric)
                 print(self.metric_values.keys())
                 continue
             ax.plot(index, ts, color=colors[i], label=pod)
             i += 1
 
-            anomaly_report = self.anomaly_data[full_metric_name]
+            anomaly_report = self.anomaly_data[metric]
             ranges = anomaly_report.get('ranges', [])
             for k in ranges.keys():
                 if len(ranges[k]) > 0:

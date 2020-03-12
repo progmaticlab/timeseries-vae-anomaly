@@ -24,6 +24,13 @@ SAMPLES_FOLDER = os.environ.get('SAMPLES_FOLDER', '.')
 SLACK_CHANNEL = os.environ.get('SLACK_CHANNEL')
 
 
+def get_pod_for_buttons(an_data, incident):
+    for metric in incident.get('metrics', []):
+        if 'review' in an_data[metric].get('service', ''):
+            return an_data[metric].get('pod')
+    return None
+
+
 class ExperimentRunner(object):
 
     def __init__(self):
@@ -34,37 +41,18 @@ class ExperimentRunner(object):
             an_data = json.load(f)
             agg = Aggregator(an_data)
             incidents, relevance = agg.build_incidents_report()
-
             metrics_df = pd.read_csv('{}/metrics_0_filter.csv'.format(DATA_FOLDER))
-
-            # TODO: for now report buttons only for reviews
-
-            # report products
             for key, item in incidents.items():
-                if 'product' not in item['service']:
-                    continue
                 self.__do_report(metrics_df, an_data, key, item)
 
-            # report all excetp product and reviews
-            for key, item in incidents.items():
-                if 'product' in item['service'] or 'reviews' in item['service']:
-                    continue
-                self.__do_report(metrics_df, an_data, key, item)
-
-            # report reviews
-            for key, item in incidents.items():
-                if 'reviews' not in item['service']:
-                    continue
-                self.__do_report(metrics_df, an_data, key, item, button=True)
-
-    def __do_report(self, metrics_df, an_data, key, item, button=False):
+    def __do_report(self, metrics_df, an_data, key, item):
         image_file = '{}_viz.png'.format(key)
         visualisation = VisualizeReports(metrics_df, an_data, item)
         visualisation.visualize_with_siblings('{}/{}'.format(SAMPLES_FOLDER, image_file))
-        print("Report incident %s for pod %s" % (key, item['pod']))
+        pod = get_pod_for_buttons(an_data, item)
+        print("Report incident %s for pod %s" % (key, pod))
         self.__upload_file('{}/{}'.format(SAMPLES_FOLDER, image_file), image_file)
-        if button:
-            self.__run_incident_report_buttons(key, item['pod'], image_file)
+        self.__run_incident_report_buttons(key, pod, image_file)
 
 
     def run_runbook(self, pod=''):
