@@ -67,7 +67,7 @@ class Payload(object):
 
 def get_action_value(data):
     action = data['actions'][0]
-    if action['type'] == 'static_select':
+    if action.get('type', '') == 'static_select':
         return action['selected_option']['value']
     return action['value']
     
