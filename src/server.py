@@ -65,6 +65,13 @@ class Payload(object):
         return self._data['channel']['name']
 
 
+def get_action_value(data):
+    action = data['actions'][0]
+    if action['type'] == 'static_select':
+        return action['selected_option']['value']
+    return action['value']
+    
+
 class Server(BaseHTTPRequestHandler):
 
     experiment = ExperimentRunner()
@@ -110,7 +117,7 @@ class Server(BaseHTTPRequestHandler):
             test_data = json.loads(payload_unqoute)
             print("payload: ", test_data)
             if check_auth(payload):
-                action_value = test_data['actions'][0]['value']
+                action_value = get_action_value(test_data)
                 print("action: ", action_value)
                 if self.path.startswith('/slack/proxy'):
                     self.__register_payload(action_value, test_data)
@@ -191,7 +198,7 @@ class Server(BaseHTTPRequestHandler):
     def respond(self, opts):
         response = self.handle_http(opts['handler'])
         self.wfile.write(response)
-
+    
 
 if __name__ == '__main__':
     if not SLACK_CHANNEL:

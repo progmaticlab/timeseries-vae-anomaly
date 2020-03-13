@@ -23,12 +23,21 @@ DATA_FOLDER = os.environ.get('DATA_FOLDER', '.')
 SAMPLES_FOLDER = os.environ.get('SAMPLES_FOLDER', '.')
 SLACK_CHANNEL = os.environ.get('SLACK_CHANNEL')
 
-
+# for now filter all except reviews
 def get_pod_for_buttons(an_data, incident):
     for metric in incident.get('metrics', []):
         if 'review' in an_data[metric].get('service', ''):
             return an_data[metric].get('pod')
     return None
+
+
+def get_pods_list(an_data, incident):
+    pods = list()
+    for metric in incident.get('metrics', []):
+        p = an_data[metric].get('pod')
+        if p:
+            pods.append(p)
+    return pods
 
 
 class ExperimentRunner(object):
@@ -54,6 +63,14 @@ class ExperimentRunner(object):
         self.__upload_file('{}/{}'.format(SAMPLES_FOLDER, image_file), image_file)
         self.__run_incident_report_buttons(key, pod, image_file)
 
+    def __do_report_with_pods_list(self, metrics_df, an_data, key, item):
+        image_file = '{}_viz.png'.format(key)
+        visualisation = VisualizeReports(metrics_df, an_data, item)
+        visualisation.visualize_with_siblings('{}/{}'.format(SAMPLES_FOLDER, image_file))
+        pods = get_pods_list(an_data, item)
+        print("Report incident %s for pods %s" % (key, pods))
+        self.__upload_file('{}/{}'.format(SAMPLES_FOLDER, image_file), image_file)
+        self.__run_incident_report_selections(key, pods, image_file)
 
     def run_runbook(self, pod=''):
         self.slack_client.api_call(
@@ -168,17 +185,143 @@ class ExperimentRunner(object):
             }
         )
 
+    def __get_suggestions(self, pods, action):
+        suggestion_options = list()
+        for p in pods:
+            suggestion_options.append({
+                "text": {
+                    "type": "plain_text",
+                    "text": "%s" % p,
+                    "emoji": True
+                },
+                "value": "%s:%s" % (action, p),
+            })
+        return suggestion_options
+
+    def __run_incident_report_selections(self, incident_key, pods, filename):
+        blocks = [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": ":arrow_up: Incident {} is created with the following anomaly in your infrastructure \n".format(incident_key) +
+                    "It could be solved by replacing the problematic pod"
+                }
+            }, {
+                "type": "divider"
+            }, {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "*Replace problematic pod*"
+                },
+                "accessory": {
+                    "type": "static_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select pod",
+                        "emoji": True
+                    },
+                    "options": self.__get_suggestions(pods, 'suggestion_1_on'),
+                    "confirm": {
+						"title": {
+							"type": "plain_text",
+							"text": "Replace selecte pod?"
+						},
+						"text": {
+							"type": "mrkdwn",
+							"text": "The selected pod will be replaced with new one"
+						},
+						"confirm": {
+							"type": "plain_text",
+							"text": "Confirm"
+						},
+						"deny": {
+							"type": "plain_text",
+							"text": "No"
+						}
+					},
+                }
+            }, {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "This is not anomaly, mark pod as normal"
+                },
+                "accessory": {
+                    "type": "static_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select pod",
+                        "emoji": True
+                    },
+                    "options": self.__get_suggestions(pods, 'negative_case'),
+                    "confirm": {
+						"title": {
+							"type": "plain_text",
+							"text": "This is not anomaly?"
+						},
+						"text": {
+							"type": "mrkdwn",
+							"text": "The anomaly for selected pod will be marked as normal"
+						},
+						"confirm": {
+							"type": "plain_text",
+							"text": "Confirm"
+						},
+						"deny": {
+							"type": "plain_text",
+							"text": "No"
+						}
+					},
+                }
+            } , {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "`I will fix myself for pod`"
+                },
+                "accessory": {
+                    "type": "static_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select pod",
+                        "emoji": True
+                    },
+                    "options": self.__get_suggestions(pods, 'operator_flow'),
+                    "confirm": {
+						"title": {
+							"type": "plain_text",
+							"text": "This is not anomaly?"
+						},
+						"text": {
+							"type": "mrkdwn",
+							"text": "The anomaly for selected pod will be marked as normal"
+						},
+						"confirm": {
+							"type": "plain_text",
+							"text": "Confirm"
+						},
+						"deny": {
+							"type": "plain_text",
+							"text": "No"
+						}
+					},
+                }
+            },  {
+                "type": "divider"
+            }
+        ]
+
+        slack_data = {
+            'channel': SLACK_CHANNEL,
+            'blocks': blocks
+        }
+
+        print("ExperimentRunner::__run_incident_report_buttons: %s" % (slack_data))
+        self.slack_client.api_call("chat.postMessage", json=slack_data)
+
 
 if __name__ == '__main__':
-    # exp = ExperimentRunner()
-    # exp.run_experiment()
-    with open('anomaly.json', 'r') as f:
-        an_data = json.load(f)
-        agg = Aggregator(an_data)
-        incidents, relevance = agg.build_incidents_report(an_data)
-
-        metrics_df = pd.read_csv('metrics_0_filter.csv')
-        for key, item in incidents.items():
-            image_file = '{}_viz.png'.format(key)
-            visualisation = VisualizeReports(metrics_df, an_data, item)
-            visualisation.visualize_with_siblings('{}'.format(image_file))
+    exp = ExperimentRunner()
+    exp.run_experiment()
