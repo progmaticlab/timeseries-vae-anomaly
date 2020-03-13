@@ -53,8 +53,8 @@ class Aggregator(object):
         # if 'internal' in metric or 'external' in metric or 'http' not in metric:
         #     return False
         # TODO: end
-        if '|P' in metric:
-            return '|P99' in metric or '|P95' in metric
+        # if '|P' in metric:
+        #    return '|P99' in metric or '|P95' in metric
         return True
 
     def __relevance_function(self, anomaly_obj):
